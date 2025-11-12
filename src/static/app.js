@@ -28,7 +28,8 @@ document.addEventListener("DOMContentLoaded", () => {
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
         `;
 
-        // Add participants section (bulleted list)
+
+        // Add participants section (custom list, no bullets)
         const participantsContainer = document.createElement("div");
         participantsContainer.className = "participants";
 
@@ -36,20 +37,57 @@ document.addEventListener("DOMContentLoaded", () => {
         participantsHeading.textContent = "Participants";
         participantsContainer.appendChild(participantsHeading);
 
-        const participantsList = document.createElement("ul");
-        participantsList.className = "participants-list";
+        const participantsList = document.createElement("div");
+        participantsList.className = "participants-list no-bullets";
 
         if (Array.isArray(details.participants) && details.participants.length > 0) {
           details.participants.forEach((p) => {
-            const li = document.createElement("li");
-            li.textContent = p;
-            participantsList.appendChild(li);
+            const participantRow = document.createElement("div");
+            participantRow.className = "participant-row";
+
+            const emailSpan = document.createElement("span");
+            emailSpan.textContent = p;
+            emailSpan.className = "participant-email";
+
+            // Delete icon
+            const deleteBtn = document.createElement("button");
+            deleteBtn.className = "delete-participant";
+            deleteBtn.title = "Remove participant";
+            deleteBtn.innerHTML = "&#128465;"; // Trash can icon
+            deleteBtn.onclick = async () => {
+              if (confirm(`Remove ${p} from ${name}?`)) {
+                try {
+                  const response = await fetch(`/activities/${encodeURIComponent(name)}/unregister?email=${encodeURIComponent(p)}`, {
+                    method: "POST"
+                  });
+                  const result = await response.json();
+                  if (response.ok) {
+                    messageDiv.textContent = result.message;
+                    messageDiv.className = "success";
+                    fetchActivities();
+                  } else {
+                    messageDiv.textContent = result.detail || "An error occurred";
+                    messageDiv.className = "error";
+                  }
+                  messageDiv.classList.remove("hidden");
+                  setTimeout(() => { messageDiv.classList.add("hidden"); }, 5000);
+                } catch (error) {
+                  messageDiv.textContent = "Failed to remove participant.";
+                  messageDiv.className = "error";
+                  messageDiv.classList.remove("hidden");
+                }
+              }
+            };
+
+            participantRow.appendChild(emailSpan);
+            participantRow.appendChild(deleteBtn);
+            participantsList.appendChild(participantRow);
           });
         } else {
-          const li = document.createElement("li");
-          li.className = "no-participants";
-          li.textContent = "No participants yet";
-          participantsList.appendChild(li);
+          const noP = document.createElement("div");
+          noP.className = "no-participants";
+          noP.textContent = "No participants yet";
+          participantsList.appendChild(noP);
         }
 
         participantsContainer.appendChild(participantsList);
@@ -90,6 +128,7 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
