@@ -1,3 +1,6 @@
+
+
+
 """
 High School Management System API
 
@@ -38,6 +41,48 @@ activities = {
         "schedule": "Mondays, Wednesdays, Fridays, 2:00 PM - 3:00 PM",
         "max_participants": 30,
         "participants": ["john@mergington.edu", "olivia@mergington.edu"]
+    },
+
+    # Sports activities
+    "Basketball Team": {
+        "description": "Team practices, drills and inter-school matches",
+        "schedule": "Mondays, Wednesdays, 4:00 PM - 6:00 PM",
+        "max_participants": 15,
+        "participants": ["liam@mergington.edu", "noah@mergington.edu"]
+    },
+    "Swimming Club": {
+        "description": "Technique coaching and lap practice at the school pool",
+        "schedule": "Tuesdays and Thursdays, 5:00 PM - 6:30 PM",
+        "max_participants": 18,
+        "participants": ["ava@mergington.edu", "isabella@mergington.edu"]
+    },
+
+    # Artistic activities
+    "Drama Club": {
+        "description": "Acting workshops, rehearsals and stage productions",
+        "schedule": "Wednesdays, 4:00 PM - 6:00 PM",
+        "max_participants": 25,
+        "participants": ["mason@mergington.edu", "mia@mergington.edu"]
+    },
+    "Visual Arts Workshop": {
+        "description": "Drawing, painting and mixed-media projects",
+        "schedule": "Fridays, 3:30 PM - 5:30 PM",
+        "max_participants": 20,
+        "participants": ["charlotte@mergington.edu", "amelia@mergington.edu"]
+    },
+
+    # Intellectual activities
+    "Robotics Club": {
+        "description": "Design and build robots, compete in challenges",
+        "schedule": "Thursdays, 4:00 PM - 6:00 PM",
+        "max_participants": 16,
+        "participants": ["ethan@mergington.edu", "lucas@mergington.edu"]
+    },
+    "Math Olympiad": {
+        "description": "Problem solving and preparation for math competitions",
+        "schedule": "Mondays, 3:30 PM - 5:00 PM",
+        "max_participants": 12,
+        "participants": ["harper@mergington.edu", "elijah@mergington.edu"]
     }
 }
 
@@ -62,6 +107,29 @@ def signup_for_activity(activity_name: str, email: str):
     # Get the specific activity
     activity = activities[activity_name]
 
+    # Validate student is not already signed up
+    normalized_email = email.strip().lower()
+    if normalized_email in (e.lower() for e in activity["participants"]):
+        raise HTTPException(status_code=400, detail="Student is already signed up")
+
+    # Optional: check capacity
+    if len(activity["participants"]) >= activity.get("max_participants", float("inf")):
+        raise HTTPException(status_code=400, detail="Activity is full")
+
     # Add student
     activity["participants"].append(email)
     return {"message": f"Signed up {email} for {activity_name}"}
+
+# Unregister endpoint (must be after all other endpoints)
+@app.post("/activities/{activity_name}/unregister")
+def unregister_from_activity(activity_name: str, email: str):
+    """Remove a student from an activity"""
+    if activity_name not in activities:
+        raise HTTPException(status_code=404, detail="Activity not found")
+    activity = activities[activity_name]
+    normalized_email = email.strip().lower()
+    for i, e in enumerate(activity["participants"]):
+        if e.lower() == normalized_email:
+            del activity["participants"][i]
+            return {"message": f"Removed {email} from {activity_name}"}
+    raise HTTPException(status_code=404, detail="Participant not found")
